@@ -15,3 +15,11 @@ require("channels")
 //
 // const images = require.context('../images', true)
 // const imagePath = (name) => images(name, true)
+
+import UploadMultiplePictures from "./upload_multiple_pictures";
+
+document.addEventListener('DOMContentLoaded', () => {
+  console.info('init upload multiple pictures');
+  const target = document.querySelector('.upload-multiple-pictures')
+  new UploadMultiplePictures(target);
+})

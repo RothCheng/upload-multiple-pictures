@@ -1,0 +1,2 @@
+class UploadMultiplesController < ApplicationController
+end
