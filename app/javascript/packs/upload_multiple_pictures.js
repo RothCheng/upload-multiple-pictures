@@ -1,3 +1,4 @@
+import { setProgressBarDelay } from 'turbolinks';
 import '../styles';
 
 class UploadMultiplePictures {
@@ -11,24 +12,26 @@ class UploadMultiplePictures {
   }
 
   init() {
-    this.el.innerHTML = `<div class="upload-multiple-pictures__item upload-multiple-pictures__item__add">
+    this.el.innerHTML = `<label class="upload-multiple-pictures__item upload-multiple-pictures__item__add">
                           <span>上传</span>
-                        </div>
+                          <input type="file">
+                        </label>
                         <div class="upload-multiple-pictures__inputs" data-multiple-upload-target="inputs"></div>`;
 
-    this.addActionElement = this.el.querySelector('.upload-multiple-pictures__item__add');
+    this.uploadContainerElement = this.el.querySelector('.upload-multiple-pictures__item__add');
+    this.uploadElement = this.uploadContainerElement.querySelector('input[type="file"]');
     this.inputsElement = this.el.querySelector('.upload-multiple-pictures__inputs');
-    this.addItemEvent();
+    this.uploadInputEvent();
   }
 
   /**
-   *
-   * @param {Object} option {key: null, image_url: null, eid: null}
+   * @description 初始化图片模块
+   * @param {Object} option {key: null, url: null, eid: null}
    * @param {Function} cb callback function
    * @returns
    */
-  createUploadItem(option = {}, cb = () => {}) {
-    let { key, image_url, eid } = option;
+  initImageBlock(option = {}) {
+    let { key, url, eid } = option;
 
     let itemHtml = document.createElement('div');
     let itemHtml__cover = document.createElement('div');
@@ -44,7 +47,7 @@ class UploadMultiplePictures {
 
     itemHtml__cover__preview.innerText = '预览';
 
-    itemHtml.style.backgroundImage = `url(${image_url})`;
+    itemHtml.style.backgroundImage = `url(${url})`;
     itemHtml.style.backgroundRepeat = 'no-repeat';
     itemHtml.style.backgroundSize = 'cover';
     itemHtml.style.backgroundPosition = 'center center';
@@ -53,22 +56,19 @@ class UploadMultiplePictures {
     itemHtml__cover.appendChild(itemHtml__cover__preview);
     itemHtml.appendChild(itemHtml__cover);
 
-    this.el.insertBefore(itemHtml, this.addActionElement);
+    this.el.insertBefore(itemHtml, this.uploadContainerElement);
 
-    if (typeof cb !== 'function') {
-      return console.info('warning: cb is not a function!');
-    };
-
-    const removeTarget = this.el.querySelector('[data-for="#'+ this.keyPrefix + key +'"] .upload-multiple-pictures__item__remove');
-    cb(removeTarget, key);
+    // 添加删除和预览事件
+    const removeElement = this.el.querySelector('[data-for="#'+ this.keyPrefix + key +'"] .upload-multiple-pictures__item__remove');
+    this.addRemoveEvent(removeElement, key);
   }
 
   /**
-   *
-   * @param {Object} option {key: null, image_url: null, eid: null}
+   * @description 初始化inputs元素, 用于form提交的参数
+   * @param {Object} option {key: null, url: null, eid: null}
    */
-  createUploadInput(option = {}) {
-    let { key, image_url, eid } = option;
+  initFormInputs(option = {}) {
+    let { key, url, eid } = option;
 
     let inputItemEl = document.createElement('div')
     let inputUrlEl = document.createElement('input');
@@ -77,44 +77,71 @@ class UploadMultiplePictures {
     inputItemEl.setAttribute('id', this.keyPrefix + key);
     inputUrlEl.setAttribute('type', 'hidden');
     inputUrlEl.setAttribute('name', this.inputUrlName);
-    inputUrlEl.setAttribute('value', image_url);
+    inputUrlEl.setAttribute('value', url);
     inputIdEl.setAttribute('type', 'hidden');
     inputIdEl.setAttribute('name', this.inputIdName);
     inputIdEl.setAttribute('value', eid);
 
     inputItemEl.appendChild(inputUrlEl);
     inputItemEl.appendChild(inputIdEl);
+
     this.inputsElement.appendChild(inputItemEl);
   }
 
   /**
-   * @description
+   * @description 处理上传的图片（当前处理方式: 转base64直接访问上传的图片）
+   * @param {File} file
    */
-  addItemEvent() {
-    let self = this;
+  handleUploadFile(file) {
+    const self = this;
+    const reader = new FileReader();
 
-    this.addActionElement.addEventListener('click', function(e) {
-      // TODO 上传附件
-      // TODO 点击上传图片 -> 创建上传item -> 加载上传进度 -> 上传回调处理
-      let result = {
+    reader.readAsDataURL(file);
+    reader.onload = function(event) {
+      // TODO 参数需要补充
+      let data = {
         key: `${(new Date).getTime()}-${parseInt(Math.random() * 100)}`,
-        image_url: '/assets/default_headshot_new-0373bfc6d2edc5659f77060dee749386e0e5135049dc3ebe3197f83a465e15f0.png',
-        eid: 'asdfasdfasdfasdfasdf'
+        url: event.target.result,
+        eid: ''
       }
 
-      self.createUploadItem(result, (el, key) => {
-        self.removeActionEvent(el, key);
-      });
-      self.createUploadInput(result);
+      self.appendUploadedImageBlock(data);
+    }
+  }
+
+  /**
+   * @description 在页面中添加一个上传成功的图片模块
+   * @param {Object} data
+   */
+  appendUploadedImageBlock(data) {
+    this.initImageBlock(data);
+    this.initFormInputs(data);
+  }
+
+  /**
+   * @description 上传图片onchange事件
+   */
+  uploadInputEvent() {
+    const self = this;
+
+    this.uploadElement.addEventListener('input', function(e) {
+      const file = this.files[0];
+
+      // TODO file 验证
+      if (!!file) {
+        this.value = '';
+        console.log(file);
+        self.handleUploadFile(file);
+      }
     });
   }
 
   /**
-   *
-   * @param {Element} el remove element
+   * @description 删除按钮事件
+   * @param {Element} el 图片模块中的删除元素
    * @param {String} key
    */
-  removeActionEvent(el, key) {
+  addRemoveEvent(el, key) {
     let self = this;
 
     el.addEventListener('click', function() {
