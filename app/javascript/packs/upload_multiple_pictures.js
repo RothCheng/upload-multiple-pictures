@@ -90,6 +90,7 @@ class UploadMultiplePictures {
 
   /**
    * @description 处理上传的图片（当前处理方式: 转base64直接访问上传的图片）
+   * @todo 加载进度
    * @param {File} file
    */
   handleUploadFile(file) {
